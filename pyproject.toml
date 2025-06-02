@@ -1,6 +1,6 @@
 [project]
 name = "mm-result"
-version = "0.0.1"
+version = "0.0.2"
 description = "Rust-inspired Result[T] container for functional error handling in Python with optional extra metadata field"
 keywords = ["result", "error-handling", "functional", "rust", "monads"]
 requires-python = ">=3.13"
@@ -23,7 +23,6 @@ dev-dependencies = [
     "pip-audit~=2.9.0",
     "bandit~=1.8.3",
     "pre-commit~=4.2.0",
-    "pydantic~=2.11.5",
 ]
 
 [tool.mypy]
