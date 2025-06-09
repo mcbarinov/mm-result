@@ -192,6 +192,48 @@ class TestResultUtilities:
         expected = {"value": None, "error": "error", "extra": {"key": "value"}}
         assert result.to_dict() == expected
 
+    def test_to_dict_safe_exception(self):
+        # Test with exception - should convert exception to string
+        exc = ValueError("test error")
+        result = Result.err(exc)
+
+        # Default behavior - keeps original exception object
+        default_dict = result.to_dict()
+        assert default_dict["extra"]["exception"] is exc
+
+        # Safe exception mode - converts exception to string
+        safe_dict = result.to_dict(safe_exception=True)
+        assert safe_dict["extra"]["exception"] == "test error"
+
+        # Should be JSON serializable now
+        import json
+
+        json_str = json.dumps(safe_dict)
+        assert json_str is not None
+
+        # Test with traceback if present
+        try:
+            raise ValueError("test with traceback")  # noqa: TRY301
+        except ValueError as e:
+            result_with_tb = Result.err(e)
+
+            # Default should have traceback
+            default_with_tb = result_with_tb.to_dict()
+            assert "traceback" in default_with_tb["extra"]
+
+            # Safe mode should remove traceback
+            safe_with_tb = result_with_tb.to_dict(safe_exception=True)
+            assert "traceback" not in safe_with_tb["extra"]
+
+        # Test with no extra - should work fine
+        result_no_extra = Result.ok(42)
+        assert result_no_extra.to_dict(safe_exception=True) == {"value": 42, "error": None, "extra": None}
+
+        # Test with extra but no exception/traceback - should preserve other data
+        result_other_extra = Result.err("error", extra={"custom": "data", "number": 123})
+        safe_other = result_other_extra.to_dict(safe_exception=True)
+        assert safe_other["extra"] == {"custom": "data", "number": 123}
+
     def test_repr(self):
         # Success with None value should show value
         result = Result.ok(None)

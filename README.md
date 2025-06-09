@@ -141,6 +141,34 @@ except Exception as e:
     result = Result.err(e)  # Auto-captures exception + traceback in extra
 ```
 
+### JSON Serialization
+
+By default, `Result.to_dict()` may contain non-serializable objects like exceptions. Use `safe_exception=True` for JSON-safe output:
+
+```python
+import json
+
+try:
+    data = json.loads("invalid json")
+except json.JSONDecodeError as e:
+    result = Result.err(e)
+
+# This would fail - exception objects aren't JSON serializable
+# json.dumps(result.to_dict())  # TypeError!
+
+# This works - converts exceptions to strings
+safe_dict = result.to_dict(safe_exception=True)
+json_string = json.dumps(safe_dict)  # ✅ Success
+
+# safe_dict contains:
+# {
+#     "value": None,
+#     "error": "JSONDecodeError: Expecting value...",
+#     "extra": {"exception": "Expecting value..."}  # String, not object
+#     # "traceback" is removed completely
+# }
+```
+
 ## Advanced Usage
 
 ### Exception Safety
@@ -238,7 +266,7 @@ assert response2.result.unwrap() == {"key": "value"}
 - `chain_async(fn: Callable[[T], Awaitable[Result[U]]]) -> Result[U]` - Async chain
 - `with_value(value: U) -> Result[U]` - Copy with new value
 - `with_error(error) -> Result[T]` - Copy as error
-- `to_dict() -> dict` - Dictionary representation
+- `to_dict(safe_exception: bool = False) -> dict` - Dictionary representation
 
 #### Type Guards
 - `is_ok(result: Result[T]) -> TypeGuard[OkResult[T]]`

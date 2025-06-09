@@ -103,15 +103,32 @@ class Result[T]:
             return self.unwrap()
         return self.unwrap_err()
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self, safe_exception: bool = False) -> dict[str, object]:
         """
         Returns a dictionary representation of the result.
-        Note: the error is converted to a string if present.
+
+        Args:
+            safe_exception: If True, simplifies exception data in 'extra' for serialization:
+                           - extra['exception'] becomes str(extra['exception'])
+                           - extra['traceback'] is removed completely
+                           This makes the result safe for JSON serialization.
+
+        Returns:
+            A dictionary with 'value', 'error', and 'extra' keys.
         """
+        extra = self.extra
+
+        if safe_exception and extra:
+            extra = extra.copy()
+            if "exception" in extra:
+                extra["exception"] = str(extra["exception"])
+            if "traceback" in extra:
+                del extra["traceback"]
+
         return {
             "value": self.value,
             "error": self.error,
-            "extra": self.extra,
+            "extra": extra,
         }
 
     def with_value(self, value: U) -> Result[U]:
@@ -266,7 +283,7 @@ class Result[T]:
             return core_schema.no_info_after_validator_function(
                 cls._validate,
                 core_schema.any_schema(),
-                serialization=core_schema.plain_serializer_function_ser_schema(lambda x: x.to_dict()),
+                serialization=core_schema.plain_serializer_function_ser_schema(lambda x: x.to_dict(safe_exception=True)),
             )
 
         @classmethod
