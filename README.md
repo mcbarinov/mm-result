@@ -41,7 +41,7 @@ if result:  # Equivalent to result.is_ok()
     print(f"Success: {user['name']}")
     print(f"Response time: {result.extra['response_time_ms']}ms")
 else:
-    error = result.expect_error()
+    error = result.unwrap_err()
     print(f"Error: {error}")
     if "status_code" in result.extra:
         print(f"HTTP Status: {result.extra['status_code']}")
@@ -90,7 +90,7 @@ value = result.unwrap("Custom message")    # With custom error message
 value = result.unwrap_or(0)               # 42, or 0 if error
 
 # Extract error (raises RuntimeError if success)
-error = Result.err("oops").expect_error() # "oops"
+error = Result.err("oops").unwrap_err() # "oops"
 
 # Get either value or error
 content = result.value_or_error()         # Returns T | str
@@ -105,7 +105,7 @@ doubled = result.map(lambda x: x * 2)     # Result.ok(10)
 
 # Chain operations
 result = Result.ok(5)
-chained = result.and_then(lambda x: Result.ok(x * 2))  # Result.ok(10)
+chained = result.chain(lambda x: Result.ok(x * 2))  # Result.ok(10)
 
 # Async versions
 async def async_double(x):
@@ -145,7 +145,7 @@ except Exception as e:
 
 ### Exception Safety
 
-Operations like `map()` and `and_then()` automatically catch exceptions:
+Operations like `map()` and `chain()` automatically catch exceptions:
 
 ```python
 def might_fail(x):
@@ -230,12 +230,12 @@ assert response2.result.unwrap() == {"key": "value"}
 - `is_err() -> bool` - Check if result is error
 - `unwrap(message_prefix: str = None, include_error: bool = True) -> T` - Extract value or raise
 - `unwrap_or(default: T) -> T` - Extract value or return default
-- `expect_error() -> str` - Extract error message or raise
+- `unwrap_err() -> str` - Extract error message or raise
 - `value_or_error() -> T | str` - Extract value or error
 - `map(fn: Callable[[T], U]) -> Result[U]` - Transform success value
-- `and_then(fn: Callable[[T], Result[U]]) -> Result[U]` - Chain operations
+- `chain(fn: Callable[[T], Result[U]]) -> Result[U]` - Chain operations
 - `map_async(fn: Callable[[T], Awaitable[U]]) -> Result[U]` - Async transform
-- `and_then_async(fn: Callable[[T], Awaitable[Result[U]]]) -> Result[U]` - Async chain
+- `chain_async(fn: Callable[[T], Awaitable[Result[U]]]) -> Result[U]` - Async chain
 - `with_value(value: U) -> Result[U]` - Copy with new value
 - `with_error(error) -> Result[T]` - Copy as error
 - `to_dict() -> dict` - Dictionary representation

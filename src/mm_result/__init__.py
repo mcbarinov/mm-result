@@ -16,7 +16,7 @@ Basic usage:
     if result.is_ok():
         print(f"Success: {result.unwrap()}")
     else:
-        print(f"Error: {result.expect_error()}")
+        print(f"Error: {result.unwrap_err()}")
 
 Optional Pydantic integration:
     Install with: pip install mm-result[pydantic]

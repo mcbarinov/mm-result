@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import traceback
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Protocol, TypeGuard, TypeVar, cast
+from typing import Any, Protocol, TypeGuard, TypeVar, cast
 
 # Optional pydantic integration
 try:
@@ -12,11 +12,6 @@ try:
     _PYDANTIC_AVAILABLE = True
 except ImportError:
     _PYDANTIC_AVAILABLE = False
-
-# Type stubs for when pydantic is not available
-if TYPE_CHECKING and not _PYDANTIC_AVAILABLE:
-    from pydantic import GetCoreSchemaHandler
-    from pydantic_core import CoreSchema
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -91,13 +86,13 @@ class Result[T]:
             return default
         return cast(T, self.value)
 
-    def expect_error(self) -> str:
+    def unwrap_err(self) -> str:
         """
         Returns the error message.
         Raises RuntimeError if the result is a success.
         """
         if self.is_ok():
-            raise RuntimeError("Called expect_error() on a success value")
+            raise RuntimeError("Called unwrap_err() on a success value")
         return cast(str, self.error)
 
     def value_or_error(self) -> T | str:
@@ -106,7 +101,7 @@ class Result[T]:
         """
         if self.is_ok():
             return self.unwrap()
-        return self.expect_error()
+        return self.unwrap_err()
 
     def to_dict(self) -> dict[str, object]:
         """
@@ -151,20 +146,20 @@ class Result[T]:
                 return Result.err(("map_exception", e), extra=self.extra)
         return cast(Result[U], self)
 
-    def and_then(self, fn: Callable[[T], Result[U]]) -> Result[U]:
+    def chain(self, fn: Callable[[T], Result[U]]) -> Result[U]:
         if self.is_ok():
             try:
                 return fn(cast(T, self.value))
             except Exception as e:
-                return Result.err(("and_then_exception", e), extra=self.extra)
+                return Result.err(("chain_exception", e), extra=self.extra)
         return cast(Result[U], self)
 
-    async def and_then_async(self, fn: Callable[[T], Awaitable[Result[U]]]) -> Result[U]:
+    async def chain_async(self, fn: Callable[[T], Awaitable[Result[U]]]) -> Result[U]:
         if self.is_ok():
             try:
                 return await fn(cast(T, self.value))
             except Exception as e:
-                return Result.err(("and_then_exception", e), extra=self.extra)
+                return Result.err(("chain_exception", e), extra=self.extra)
         return cast(Result[U], self)
 
     def __repr__(self) -> str:

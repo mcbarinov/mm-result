@@ -103,12 +103,12 @@ class TestResultMethods:
 
     def test_unwrap_error_success(self):
         result = Result.err("test error")
-        assert result.expect_error() == "test error"
+        assert result.unwrap_err() == "test error"
 
     def test_unwrap_error_on_success(self):
         result = Result.ok(42)
-        with pytest.raises(RuntimeError, match="Called expect_error\\(\\) on a success value"):
-            result.expect_error()
+        with pytest.raises(RuntimeError, match="Called unwrap_err\\(\\) on a success value"):
+            result.unwrap_err()
 
     def test_value_or_error(self):
         assert Result.ok(42).value_or_error() == 42
@@ -136,23 +136,23 @@ class TestResultTransformations:
         assert mapped.extra is not None
         assert isinstance(mapped.extra["exception"], ZeroDivisionError)
 
-    def test_and_then_success(self):
+    def test_chain_success(self):
         result = Result.ok(42)
-        chained = result.and_then(lambda x: Result.ok(x * 2))
+        chained = result.chain(lambda x: Result.ok(x * 2))
         assert chained.is_ok()
         assert chained.unwrap() == 84
 
-    def test_and_then_error_passthrough(self):
+    def test_chain_error_passthrough(self):
         result = Result.err("error")
-        chained = result.and_then(lambda x: Result.ok(x * 2))
+        chained = result.chain(lambda x: Result.ok(x * 2))
         assert chained.is_err()
         assert chained.error == "error"
 
-    def test_and_then_exception_handling(self):
+    def test_chain_exception_handling(self):
         result = Result.ok(42)
-        chained = result.and_then(lambda _: 1 / 0)  # Will raise ZeroDivisionError
+        chained = result.chain(lambda _: 1 / 0)  # Will raise ZeroDivisionError
         assert chained.is_err()
-        assert chained.error == "and_then_exception"
+        assert chained.error == "chain_exception"
         assert chained.extra is not None
         assert isinstance(chained.extra["exception"], ZeroDivisionError)
 
@@ -169,13 +169,13 @@ class TestAsyncMethods:
         assert mapped.is_ok()
         assert mapped.unwrap() == 84
 
-    async def test_and_then_async_success(self):
+    async def test_chain_async_success(self):
         result = Result.ok(42)
 
         async def async_transform(x):
             return Result.ok(x * 2)
 
-        chained = await result.and_then_async(async_transform)
+        chained = await result.chain_async(async_transform)
         assert chained.is_ok()
         assert chained.unwrap() == 84
 
