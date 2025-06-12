@@ -103,7 +103,7 @@ class Result[T]:
             return self.unwrap()
         return self.unwrap_err()
 
-    def to_dict(self, safe_exception: bool = False) -> dict[str, object]:
+    def to_dict(self, safe_exception: bool = False) -> dict[str, Any]:
         """
         Returns a dictionary representation of the result.
 

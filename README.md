@@ -266,7 +266,7 @@ assert response2.result.unwrap() == {"key": "value"}
 - `chain_async(fn: Callable[[T], Awaitable[Result[U]]]) -> Result[U]` - Async chain
 - `with_value(value: U) -> Result[U]` - Copy with new value
 - `with_error(error) -> Result[T]` - Copy as error
-- `to_dict(safe_exception: bool = False) -> dict` - Dictionary representation
+- `to_dict(safe_exception: bool = False) -> dict[str, Any]` - Dictionary representation
 
 #### Type Guards
 - `is_ok(result: Result[T]) -> TypeGuard[OkResult[T]]`
