@@ -203,13 +203,6 @@ class Result[T]:
             return False
         return self.value == other.value and self.error == other.error and self.extra == other.extra
 
-    def __bool__(self) -> bool:
-        """
-        Returns True if the Result is Ok, False if it's an error.
-        This allows using Result in boolean contexts: `if result:` is equivalent to `if result.is_ok():`
-        """
-        return self.is_ok()
-
     @classmethod
     def _create(cls, value: T | None, error: str | None, extra: Extra) -> Result[T]:
         obj = object.__new__(cls)

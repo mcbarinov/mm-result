@@ -34,9 +34,9 @@ def fetch_user_data(user_id: int) -> Result[dict]:
         "status_code": 200
     })
 
-# Using the __bool__ method for clean conditionals
+# Using explicit success checking
 result = fetch_user_data(123)
-if result:  # Equivalent to result.is_ok()
+if result.is_ok():
     user = result.unwrap()
     print(f"Success: {user['name']}")
     print(f"Response time: {result.extra['response_time_ms']}ms")
@@ -71,9 +71,8 @@ result = Result.ok(42)
 
 result.is_ok()    # True
 result.is_err()   # False
-bool(result)      # True (equivalent to is_ok())
 
-if result:  # Pythonic way to check success
+if result.is_ok():  # Explicit way to check success
     print("Success!")
 ```
 

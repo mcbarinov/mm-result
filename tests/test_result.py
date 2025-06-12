@@ -79,10 +79,6 @@ class TestResultCreation:
 
 
 class TestResultMethods:
-    def test_bool_conversion(self):
-        assert bool(Result.ok(42)) is True
-        assert bool(Result.err("error")) is False
-
     def test_unwrap_success(self):
         result = Result.ok(42)
         assert result.unwrap() == 42
