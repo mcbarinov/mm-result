@@ -4,15 +4,6 @@ import traceback
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol, TypeGuard, TypeVar, cast
 
-# Optional pydantic integration
-try:
-    from pydantic import GetCoreSchemaHandler
-    from pydantic_core import CoreSchema, core_schema
-
-    _PYDANTIC_AVAILABLE = True
-except ImportError:
-    _PYDANTIC_AVAILABLE = False
-
 T = TypeVar("T")
 U = TypeVar("U")
 
@@ -277,28 +268,6 @@ class Result[T]:
 
         return Result._create(value=None, error=error_msg, extra=final_extra or None)
 
-    if _PYDANTIC_AVAILABLE:
-
-        @classmethod
-        def __get_pydantic_core_schema__(cls, _source_type: type[Any], _handler: GetCoreSchemaHandler) -> CoreSchema:
-            return core_schema.no_info_after_validator_function(
-                cls._validate,
-                core_schema.any_schema(),
-                serialization=core_schema.plain_serializer_function_ser_schema(lambda x: x.to_dict(safe_exception=True)),
-            )
-
-        @classmethod
-        def _validate(cls, value: object) -> Result[Any]:
-            if isinstance(value, cls):
-                return value
-            if isinstance(value, dict):
-                return cls._create(
-                    value=value.get("value"),
-                    error=value.get("error"),
-                    extra=value.get("extra"),
-                )
-            raise TypeError(f"Invalid value for Result: {value}")
-
 
 class OkResult(Protocol[T]):
     value: T
@@ -316,3 +285,12 @@ def is_ok[T](res: Result[T]) -> TypeGuard[OkResult[T]]:
 
 def is_err[T](res: Result[T]) -> TypeGuard[ErrResult[T]]:
     return res.is_err()
+
+
+# Apply Pydantic integration if available
+try:
+    from .pydantic_support import add_pydantic_support
+
+    add_pydantic_support(Result)
+except ImportError:
+    pass  # Pydantic not available

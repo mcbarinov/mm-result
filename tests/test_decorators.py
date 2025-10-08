@@ -20,6 +20,7 @@ class TestDecorators:
 
         result = divide(10, 0)
         assert result.is_err()
+        assert result.error is not None
         assert "ZeroDivisionError" in result.error
         assert result.extra is not None
         assert isinstance(result.extra["exception"], ZeroDivisionError)
@@ -61,6 +62,7 @@ class TestAsyncDecorators:
 
         result = await async_divide(10, 0)
         assert result.is_err()
+        assert result.error is not None
         assert "ZeroDivisionError" in result.error
         assert result.extra is not None
         assert isinstance(result.extra["exception"], ZeroDivisionError)

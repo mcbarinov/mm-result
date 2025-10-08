@@ -146,7 +146,7 @@ class TestResultTransformations:
 
     def test_chain_exception_handling(self):
         result = Result.ok(42)
-        chained = result.chain(lambda _: 1 / 0)  # Will raise ZeroDivisionError
+        chained = result.chain(lambda _: 1 / 0)  # type: ignore[arg-type]  # Will raise ZeroDivisionError
         assert chained.is_err()
         assert chained.error == "chain_exception"
         assert chained.extra is not None

@@ -215,6 +215,51 @@ def process_result(result: Result[int]) -> None:
         error: str = result.error
 ```
 
+## Decorators
+
+### @returns_result
+
+Automatically wrap functions to return `Result[T]` and catch exceptions:
+
+```python
+from mm_result import returns_result
+
+@returns_result
+def divide(a: int, b: int) -> float:
+    return a / b
+
+result = divide(10, 2)   # Result.ok(5.0)
+result = divide(10, 0)   # Result.err(ZeroDivisionError(...))
+
+if result.is_ok():
+    print(f"Result: {result.unwrap()}")
+else:
+    print(f"Error: {result.unwrap_err()}")
+    # Exception details automatically captured in result.extra
+```
+
+### @async_returns_result
+
+Async version for coroutines:
+
+```python
+from mm_result import async_returns_result
+import httpx
+
+@async_returns_result
+async def fetch_data(url: str) -> dict:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        return response.json()
+
+result = await fetch_data("https://api.example.com")
+if result.is_ok():
+    data = result.unwrap()
+    print(f"Fetched: {data}")
+else:
+    print(f"Request failed: {result.unwrap_err()}")
+```
+
 ## Pydantic Integration
 
 When installed with `pip install mm-result[pydantic]`:
@@ -249,8 +294,8 @@ assert response2.result.unwrap() == {"key": "value"}
 ### Result[T]
 
 #### Class Methods
-- `Result.ok(value: T, extra: dict = None) -> Result[T]`
-- `Result.err(error: str | Exception | tuple, extra: dict = None) -> Result[T]`
+- `Result.ok(value: T, extra: dict = None) -> Result[T]` - Create success result
+- `Result.err(error: str | Exception | tuple, extra: dict = None) -> Result[T]` - Create error result
 
 #### Instance Methods
 - `is_ok() -> bool` - Check if result is success
@@ -268,5 +313,13 @@ assert response2.result.unwrap() == {"key": "value"}
 - `to_dict(safe_exception: bool = False) -> dict[str, Any]` - Dictionary representation
 
 #### Type Guards
-- `is_ok(result: Result[T]) -> TypeGuard[OkResult[T]]`
-- `is_err(result: Result[T]) -> TypeGuard[ErrResult[T]]`
+- `is_ok(result: Result[T]) -> TypeGuard[OkResult[T]]` - Type-safe check for Ok result
+- `is_err(result: Result[T]) -> TypeGuard[ErrResult[T]]` - Type-safe check for Err result
+
+#### Decorators
+- `@returns_result` - Wrap function to return `Result[T]` and auto-catch exceptions
+- `@async_returns_result` - Async version of `@returns_result`
+
+#### Custom Exceptions
+- `UnwrapError` - Raised when `unwrap()` is called on an Err result
+- `UnwrapErrError` - Raised when `unwrap_err()` is called on an Ok result
