@@ -28,6 +28,25 @@ Optional Pydantic integration:
         result_field: Result[int]
 """
 
-from .result import ErrResult, OkResult, Result, is_err, is_ok
+from .decorators import async_returns_result, returns_result
+from .result import (
+    ErrResult,
+    OkResult,
+    Result,
+    UnwrapErrError,
+    UnwrapError,
+    is_err,
+    is_ok,
+)
 
-__all__ = ["ErrResult", "OkResult", "Result", "is_err", "is_ok"]
+__all__ = [
+    "ErrResult",
+    "OkResult",
+    "Result",
+    "UnwrapErrError",
+    "UnwrapError",
+    "async_returns_result",
+    "is_err",
+    "is_ok",
+    "returns_result",
+]

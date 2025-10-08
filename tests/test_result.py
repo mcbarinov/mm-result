@@ -1,6 +1,6 @@
 import pytest
 
-from mm_result import Result
+from mm_result import Result, UnwrapErrError, UnwrapError
 
 
 class TestResultCreation:
@@ -85,12 +85,12 @@ class TestResultMethods:
 
     def test_unwrap_error(self):
         result = Result.err("test error")
-        with pytest.raises(RuntimeError, match="Called unwrap\\(\\) on a failure value: test error"):
+        with pytest.raises(UnwrapError, match="Called unwrap\\(\\) on a failure value: test error"):
             result.unwrap()
 
     def test_unwrap_custom_message(self):
         result = Result.err("test error")
-        with pytest.raises(RuntimeError, match="Custom message: test error"):
+        with pytest.raises(UnwrapError, match="Custom message: test error"):
             result.unwrap("Custom message")
 
     def test_unwrap_or(self):
@@ -103,7 +103,7 @@ class TestResultMethods:
 
     def test_unwrap_error_on_success(self):
         result = Result.ok(42)
-        with pytest.raises(RuntimeError, match="Called unwrap_err\\(\\) on a success value"):
+        with pytest.raises(UnwrapErrError, match="Called unwrap_err\\(\\) on a success value"):
             result.unwrap_err()
 
     def test_value_or_error(self):

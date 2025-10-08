@@ -19,6 +19,14 @@ U = TypeVar("U")
 type Extra = dict[str, Any] | None
 
 
+class UnwrapError(Exception):
+    """Raised when unwrap() is called on an Err result."""
+
+
+class UnwrapErrError(Exception):
+    """Raised when unwrap_err() is called on an Ok result."""
+
+
 class Result[T]:
     """
     A container representing either a successful result or an error.
@@ -54,7 +62,7 @@ class Result[T]:
 
     def unwrap(self, message_prefix: str | None = None, include_error: bool = True) -> T:
         """
-        Returns the success value if the Result is Ok, otherwise raises a RuntimeError.
+        Returns the success value if the Result is Ok, otherwise raises an UnwrapError.
 
         Args:
             message_prefix: Optional custom prefix for the error message if the Result is an error.
@@ -62,7 +70,7 @@ class Result[T]:
             include_error: If True, appends the internal error message from the Result to the final exception message.
 
         Raises:
-            RuntimeError: If the Result is an error.
+            UnwrapError: If the Result is an error.
 
         Returns:
             The success value of type T.
@@ -74,7 +82,7 @@ class Result[T]:
             if include_error:
                 error_message = f"{error_message}: {self.error}"
             # Raise with the final constructed message
-            raise RuntimeError(error_message)
+            raise UnwrapError(error_message)
         # Return the success value if present
         return cast(T, self.value)
 
@@ -89,10 +97,10 @@ class Result[T]:
     def unwrap_err(self) -> str:
         """
         Returns the error message.
-        Raises RuntimeError if the result is a success.
+        Raises UnwrapErrError if the result is a success.
         """
         if self.is_ok():
-            raise RuntimeError("Called unwrap_err() on a success value")
+            raise UnwrapErrError("Called unwrap_err() on a success value")
         return cast(str, self.error)
 
     def value_or_error(self) -> T | str:
@@ -302,9 +310,9 @@ class ErrResult(Protocol[T]):  # type: ignore[misc]
     error: str
 
 
-def is_ok(res: Result[T]) -> TypeGuard[OkResult[T]]:
+def is_ok[T](res: Result[T]) -> TypeGuard[OkResult[T]]:
     return res.is_ok()
 
 
-def is_err(res: Result[T]) -> TypeGuard[ErrResult[T]]:
+def is_err[T](res: Result[T]) -> TypeGuard[ErrResult[T]]:
     return res.is_err()
