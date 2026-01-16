@@ -66,6 +66,8 @@ class Result[T]:
         Returns:
             The success value of type T.
         """
+        # Hide this frame from pytest tracebacks for cleaner test failure output
+        __tracebackhide__ = True
         if not self.is_ok():
             # Use the provided message or a default fallback
             error_message = message_prefix or "Called unwrap() on a failure value"
@@ -90,6 +92,8 @@ class Result[T]:
         Returns the error message.
         Raises UnwrapErrError if the result is a success.
         """
+        # Hide this frame from pytest tracebacks for cleaner test failure output
+        __tracebackhide__ = True
         if self.is_ok():
             raise UnwrapErrError("Called unwrap_err() on a success value")
         return cast(str, self.error)
