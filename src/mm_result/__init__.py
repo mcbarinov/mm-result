@@ -1,52 +1,36 @@
-"""
-mm-result: Functional error handling for Python using Result types.
+"""mm-result: Functional error handling for Python using Result types.
 
 A Result[T] represents either a successful value (Ok) or an error (Err).
-This enables functional programming patterns for error handling without exceptions.
+Each result can carry additional metadata in the `context` field.
 
 Basic usage:
     from mm_result import Result
 
-    def divide(a: int, b: int) -> Result[float]:
-        if b == 0:
-            return Result.err("Division by zero")
-        return Result.ok(a / b)
+    def fetch_user(user_id: int) -> Result[dict]:
+        if user_id <= 0:
+            return Result.err("Invalid user ID")
+        return Result.ok({"id": user_id, "name": "John"})
 
-    result = divide(10, 2)
+    result = fetch_user(123)
     if result.is_ok():
-        print(f"Success: {result.unwrap()}")
-    else:
-        print(f"Error: {result.unwrap_err()}")
+        print(result.unwrap())
 
-Optional Pydantic integration:
-    Install with: pip install mm-result[pydantic]
+Using context for metadata:
+    def fetch_data(url: str) -> Result[bytes]:
+        try:
+            response = httpx.get(url)
+            return Result.ok(response.content, context={
+                "status_code": response.status_code,
+                "elapsed_ms": response.elapsed.total_seconds() * 1000,
+            })
+        except httpx.RequestError as e:
+            return Result.err(e, context={"url": url})
 
-    from pydantic import BaseModel
-    from mm_result import Result
-
-    class MyModel(BaseModel):
-        result_field: Result[int]
+    result = fetch_data("https://example.com")
+    if result.is_ok():
+        print(f"Got {len(result.unwrap())} bytes in {result.context['elapsed_ms']:.0f}ms")
 """
 
-from .decorators import async_returns_result, returns_result
-from .result import (
-    ErrResult,
-    OkResult,
-    Result,
-    UnwrapErrError,
-    UnwrapError,
-    is_err,
-    is_ok,
-)
-
-__all__ = [
-    "ErrResult",
-    "OkResult",
-    "Result",
-    "UnwrapErrError",
-    "UnwrapError",
-    "async_returns_result",
-    "is_err",
-    "is_ok",
-    "returns_result",
-]
+from .result import Result as Result
+from .result import UnwrapErrError as UnwrapErrError
+from .result import UnwrapError as UnwrapError

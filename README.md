@@ -2,7 +2,7 @@
 
 Functional error handling for Python using Result types inspired by Rust.
 
-A `Result[T]` represents either a successful value (`Ok`) or an error (`Err`), enabling functional programming patterns for error handling without exceptions. Each result can optionally carry additional metadata in the `extra` field for context like performance metrics, HTTP details, or debugging information.
+A `Result[T]` represents either a successful value (`Ok`) or an error (`Err`), enabling functional programming patterns for error handling without exceptions. Each result can optionally carry additional metadata in the `context` field for context like performance metrics, HTTP details, or debugging information.
 
 ## Quick Start
 
@@ -14,21 +14,21 @@ def fetch_user_data(user_id: int) -> Result[dict]:
     start_time = time.time()
 
     if user_id <= 0:
-        return Result.err("Invalid user ID", extra={
+        return Result.err("Invalid user ID", context={
             "user_id": user_id,
             "validation_rule": "user_id > 0"
         })
 
     # Simulate API call
     if user_id == 999:
-        return Result.err("User not found", extra={
+        return Result.err("User not found", context={
             "user_id": user_id,
             "response_time_ms": round((time.time() - start_time) * 1000),
             "status_code": 404
         })
 
     user_data = {"id": user_id, "name": f"User {user_id}"}
-    return Result.ok(user_data, extra={
+    return Result.ok(user_data, context={
         "response_time_ms": round((time.time() - start_time) * 1000),
         "cache_hit": False,
         "status_code": 200
@@ -39,12 +39,12 @@ result = fetch_user_data(123)
 if result.is_ok():
     user = result.unwrap()
     print(f"Success: {user['name']}")
-    print(f"Response time: {result.extra['response_time_ms']}ms")
+    print(f"Response time: {result.context['response_time_ms']}ms")
 else:
     error = result.unwrap_err()
     print(f"Error: {error}")
-    if "status_code" in result.extra:
-        print(f"HTTP Status: {result.extra['status_code']}")
+    if "status_code" in result.context:
+        print(f"HTTP Status: {result.context['status_code']}")
 ```
 
 ## Core Features
@@ -55,11 +55,11 @@ else:
 # Success values
 result = Result.ok(42)
 result = Result.ok(None)  # Ok with None value
-result = Result.ok("data", extra={"metadata": "info"})
+result = Result.ok("data", context={"metadata": "info"})
 
 # Error values
 result = Result.err("Something went wrong")
-result = Result.err("Network timeout", extra={"retry_count": 3, "endpoint": "/api/users"})
+result = Result.err("Network timeout", context={"retry_count": 3, "endpoint": "/api/users"})
 result = Result.err(ValueError("Bad input"))  # From exception
 result = Result.err(("Custom error", exc))    # Custom message + exception
 ```
@@ -81,14 +81,14 @@ if result.is_ok():  # Explicit way to check success
 ```python
 result = Result.ok(42)
 
-# Extract value (raises RuntimeError if error)
+# Extract value (raises UnwrapError if error)
 value = result.unwrap()                    # 42
 value = result.unwrap("Custom message")    # With custom error message
 
 # Extract value with fallback
 value = result.unwrap_or(0)               # 42, or 0 if error
 
-# Extract error (raises RuntimeError if success)
+# Extract error (raises UnwrapErrError if success)
 error = Result.err("oops").unwrap_err() # "oops"
 
 # Get either value or error
@@ -113,13 +113,13 @@ async def async_double(x):
 doubled = await result.map_async(async_double)
 ```
 
-### Error Handling with Extra Data
+### Error Handling with Context Data
 
-The `extra` field allows attaching arbitrary metadata:
+The `context` field allows attaching arbitrary metadata:
 
 ```python
 # HTTP request context
-result = Result.err("Network timeout", extra={
+result = Result.err("Network timeout", context={
     "status_code": 408,
     "response_time_ms": 5000,
     "retry_count": 3,
@@ -127,7 +127,7 @@ result = Result.err("Network timeout", extra={
 })
 
 # Performance metrics
-result = Result.ok(data, extra={
+result = Result.ok(data, context={
     "cache_hit": True,
     "query_time_ms": 15,
     "server": "prod-01"
@@ -137,7 +137,7 @@ result = Result.ok(data, extra={
 try:
     risky_operation()
 except Exception as e:
-    result = Result.err(e)  # Auto-captures exception + traceback in extra
+    result = Result.err(e)  # Auto-captures exception + traceback in context
 ```
 
 ### JSON Serialization
@@ -163,7 +163,7 @@ json_string = json.dumps(safe_dict)  # ✅ Success
 # {
 #     "value": None,
 #     "error": "JSONDecodeError: Expecting value...",
-#     "extra": {"exception": "Expecting value..."}  # String, not object
+#     "context": {"exception": "Expecting value..."}  # String, not object
 #     # "traceback" is removed completely
 # }
 ```
@@ -183,86 +183,26 @@ def might_fail(x):
 result = Result.ok(-5)
 safe_result = result.map(might_fail)  # Captures exception safely
 # safe_result.is_err() == True
-# safe_result.extra["exception"] contains the ValueError
+# safe_result.context["exception"] contains the ValueError
 ```
 
 ### Working with Copies
 
 ```python
-original = Result.ok(42, extra={"version": "1.0"})
+original = Result.ok(42, context={"version": "1.0"})
 
-# Create new result with different value, preserving extra
+# Create new result with different value, preserving context
 new_result = original.with_value("hello")
 # new_result.unwrap() == "hello"
-# new_result.extra == {"version": "1.0"}
+# new_result.context == {"version": "1.0"}
 
-# Create error from success, preserving extra
+# Create error from success, preserving context
 error_result = original.with_error("Something failed")
-```
-
-### Type Guards
-
-```python
-from mm_result import is_ok, is_err
-
-def process_result(result: Result[int]) -> None:
-    if is_ok(result):
-        # Type checker knows result.value is int, not int | None
-        value: int = result.value
-
-    if is_err(result):
-        # Type checker knows result.error is str, not str | None
-        error: str = result.error
-```
-
-## Decorators
-
-### @returns_result
-
-Automatically wrap functions to return `Result[T]` and catch exceptions:
-
-```python
-from mm_result import returns_result
-
-@returns_result
-def divide(a: int, b: int) -> float:
-    return a / b
-
-result = divide(10, 2)   # Result.ok(5.0)
-result = divide(10, 0)   # Result.err(ZeroDivisionError(...))
-
-if result.is_ok():
-    print(f"Result: {result.unwrap()}")
-else:
-    print(f"Error: {result.unwrap_err()}")
-    # Exception details automatically captured in result.extra
-```
-
-### @async_returns_result
-
-Async version for coroutines:
-
-```python
-from mm_result import async_returns_result
-import httpx
-
-@async_returns_result
-async def fetch_data(url: str) -> dict:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        return response.json()
-
-result = await fetch_data("https://api.example.com")
-if result.is_ok():
-    data = result.unwrap()
-    print(f"Fetched: {data}")
-else:
-    print(f"Request failed: {result.unwrap_err()}")
 ```
 
 ## Pydantic Integration
 
-When installed with `pip install mm-result[pydantic]`:
+Works automatically when pydantic is installed:
 
 ```python
 from pydantic import BaseModel
@@ -279,7 +219,7 @@ response = ApiResponse(
 )
 data = response.model_dump()
 # {
-#     "result": {"value": {"key": "value"}, "error": None, "extra": None},
+#     "result": {"value": {"key": "value"}, "error": None, "context": None},
 #     "timestamp": "2024-01-01T00:00:00Z"
 # }
 
@@ -294,8 +234,8 @@ assert response2.result.unwrap() == {"key": "value"}
 ### Result[T]
 
 #### Class Methods
-- `Result.ok(value: T, extra: dict = None) -> Result[T]` - Create success result
-- `Result.err(error: str | Exception | tuple, extra: dict = None) -> Result[T]` - Create error result
+- `Result.ok(value: T, context: dict = None) -> Result[T]` - Create success result
+- `Result.err(error: str | Exception | tuple, context: dict = None) -> Result[T]` - Create error result
 
 #### Instance Methods
 - `is_ok() -> bool` - Check if result is success
@@ -311,14 +251,6 @@ assert response2.result.unwrap() == {"key": "value"}
 - `with_value(value: U) -> Result[U]` - Copy with new value
 - `with_error(error) -> Result[T]` - Copy as error
 - `to_dict(safe_exception: bool = False) -> dict[str, Any]` - Dictionary representation
-
-#### Type Guards
-- `is_ok(result: Result[T]) -> TypeGuard[OkResult[T]]` - Type-safe check for Ok result
-- `is_err(result: Result[T]) -> TypeGuard[ErrResult[T]]` - Type-safe check for Err result
-
-#### Decorators
-- `@returns_result` - Wrap function to return `Result[T]` and auto-catch exceptions
-- `@async_returns_result` - Async version of `@returns_result`
 
 #### Custom Exceptions
 - `UnwrapError` - Raised when `unwrap()` is called on an Err result
